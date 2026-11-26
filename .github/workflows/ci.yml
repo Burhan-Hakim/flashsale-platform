@@ -1,0 +1,80 @@
+name: ci
+
+# only runs when the frontend (or this file) changes.
+# PRs just build and scan. pushes to main also push the image
+# and update the tag in gitops/
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/frontend/**"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    paths:
+      - "app/frontend/**"
+      - ".github/workflows/ci.yml"
+
+permissions:
+  id-token: write   # for the AWS login
+  contents: write   # so the bot can commit the new tag
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-scan-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: app/frontend/go.mod
+
+      - name: Go tests
+        working-directory: app/frontend
+        run: go test ./...
+
+      - name: Build image
+        run: docker build -t frontend:${{ github.sha }} app/frontend
+
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: frontend:${{ github.sha }}
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"   # fail the build on HIGH or CRITICAL
+
+      # everything below only runs on pushes to main, not on PRs
+      - name: AWS login
+        if: github.event_name == 'push'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: ECR login
+        if: github.event_name == 'push'
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Push image
+        if: github.event_name == 'push'
+        run: |
+          TAG="${GITHUB_SHA::7}"
+          IMAGE="${{ steps.ecr.outputs.registry }}/flashsale/frontend:${TAG}"
+          docker tag "frontend:${{ github.sha }}" "$IMAGE"
+          docker push "$IMAGE"
+          echo "TAG=${TAG}" >> "$GITHUB_ENV"
+
+      - name: Bump the tag in gitops
+        if: github.event_name == 'push'
+        run: |
+          sed -i "s/newTag: .*/newTag: ${TAG}/" gitops/overlays/dev/kustomization.yaml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add gitops/overlays/dev/kustomization.yaml
+          git commit -m "ci: deploy frontend ${TAG} to dev" || echo "nothing to commit"
+          git push
