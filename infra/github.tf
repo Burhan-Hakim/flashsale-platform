@@ -25,7 +25,10 @@ data "aws_iam_policy_document" "github_trust" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:ref:refs/heads/main"]
+            values = [
+        "repo:${var.github_repo}:ref:refs/heads/main",
+        "repo:Burhan-Hakim@284532493/flashsale-platform@1470181500:ref:refs/heads/main",
+      ]
     }
   }
 }
