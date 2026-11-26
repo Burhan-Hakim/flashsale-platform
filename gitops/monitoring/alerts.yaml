@@ -1,0 +1,35 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: flashsale-alerts
+  namespace: monitoring
+spec:
+  groups:
+    - name: flashsale.rules
+      rules:
+        - alert: PodCannotPullImage
+          expr: kube_pod_container_status_waiting_reason{namespace="dev", reason=~"ImagePullBackOff|ErrImagePull"} > 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "pod in dev can't pull its image"
+            description: "{{ $labels.pod }} is stuck on {{ $labels.reason }}, check the image tag in gitops/overlays/dev"
+
+        - alert: PodRestartingTooMuch
+          expr: increase(kube_pod_container_status_restarts_total{namespace="dev"}[10m]) > 3
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "pod keeps restarting"
+            description: "{{ $labels.pod }} restarted more than 3 times in 10 min"
+
+        - alert: FrontendHasNoAvailableReplicas
+          expr: kube_deployment_status_replicas_available{namespace="dev", deployment="frontend"} < 1
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "storefront has no healthy pods"
+            description: "frontend in dev has had zero available pods for 2 min, customers can't reach the store"

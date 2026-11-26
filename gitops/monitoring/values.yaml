@@ -1,0 +1,13 @@
+prometheus:
+  prometheusSpec:
+    retention: 12h
+    ruleSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+grafana:
+  defaultDashboardsTimezone: Asia/Kolkata
+alertmanager:
+  enabled: true
