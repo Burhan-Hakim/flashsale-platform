@@ -1,9 +1,8 @@
-
 data "aws_availability_zones" "available" {
   state = "available"
 }
 
-# ---------- Network ----------
+# network
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 5.0"
@@ -16,7 +15,7 @@ module "vpc" {
   public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
 
   enable_nat_gateway   = true
-  single_nat_gateway   = true # one NAT keeps the cost down (but it is a single point of failure)
+  single_nat_gateway   = true # one NAT to save money. yes, it's a single point of failure
   enable_dns_hostnames = true
 
   public_subnet_tags = {
@@ -27,7 +26,7 @@ module "vpc" {
   }
 }
 
-# ---------- Kubernetes cluster (EKS) ----------
+# the cluster
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "~> 20.0"
@@ -62,11 +61,11 @@ module "eks" {
   }
 }
 
-# ----------  pipeline stores the frontend image here ----------
+# registry for the frontend image
 resource "aws_ecr_repository" "frontend" {
   name                 = "flashsale/frontend"
   image_tag_mutability = "IMMUTABLE"
-  force_delete         = true # lets "terraform destroy" remove it even if it holds images
+  force_delete         = true # so destroy works even when there are images in it
 
   image_scanning_configuration {
     scan_on_push = true

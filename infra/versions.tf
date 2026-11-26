@@ -8,7 +8,7 @@ terraform {
     }
   }
 
-  # The state bucket details are given at "terraform init" time
+  # bucket details get passed in at init time
   backend "s3" {}
 }
 

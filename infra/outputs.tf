@@ -7,9 +7,10 @@ output "ecr_repository_url" {
 }
 
 output "github_actions_role_arn" {
-  description = "Goes into the GitHub variable AWS_ROLE_ARN."
+  description = "paste this into the AWS_ROLE_ARN repo variable"
   value       = aws_iam_role.github_actions.arn
 }
 
 output "update_kubeconfig" {
   value = "aws eks update-kubeconfig --name ${module.eks.cluster_name} --region ${var.region}"
+}

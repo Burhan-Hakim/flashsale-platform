@@ -9,12 +9,12 @@ variable "cluster_name" {
 }
 
 variable "kubernetes_version" {
-  description = "A currently supported EKS version"
+  description = "EKS version, pick one"
   type        = string
 }
 
 variable "github_repo" {
-  description = "Your repo as USERNAME/REPO."
+  description = "github repo as user/repo"
   type        = string
 }
 
@@ -29,7 +29,7 @@ variable "node_count" {
 }
 
 variable "api_allowed_cidrs" {
-  description = "IP ranges allowed to reach the EKS API from the internet, for example [\"1.2.3.4/32\"] (your master's public IP)."
+  description = "who can reach the EKS API from the internet, set it to the master IP with /32"
   type        = list(string)
   default     = ["0.0.0.0/0"]
 }
